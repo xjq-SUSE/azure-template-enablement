@@ -225,7 +225,7 @@
     "outputs": {
         "resourceID": {
           "type": "string",
-          "value": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('vmName'),'-ip'))]"
+          "value": "[reference(concat(parameters('vmName'),'-ip')).outputs.resourceID.value]"
         }
       }
 }
