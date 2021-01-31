@@ -1,0 +1,236 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmName": {
+            "type": "String",
+            "metadata": {
+                "description": "Name of the virtual machine."
+              }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "metadata": {
+              "description": "Size of the virtual machine."
+            }
+          },
+        "COURSE":{
+            "type": "string",
+            "defaultValue": "SLE201v15",
+            "metadata":{
+                "description": "Tag used by enablement manager"
+            }
+        },
+        "REGION":{
+            "type": "string",
+            "defaultValue": "GC",
+            "metadata":{
+                "description": "Tag used by enablement manager"
+            }
+        },
+        "INSTRUCTOR_NAME":{
+            "type": "string",
+            "defaultValue": "JX",
+            "metadata":{
+                "description": "Tag used by enablement manager"
+            }
+        },
+        "image":{
+            "type": "string",
+            "defaultValue": "/subscriptions/0c1018a5-5235-4dae-8e45-8353ad3186fa/resourceGroups/SLE201v15/providers/Microsoft.Compute/images/testmultydisk",
+            "metadata":{
+                "description": "Image"
+            }
+        },
+        "network_id":{
+            "type": "string",
+            "defaultValue": "/subscriptions/0c1018a5-5235-4dae-8e45-8353ad3186fa/resourceGroups/SLE201v15/providers/Microsoft.Network/virtualNetworks/SLE201v15-vnet",
+            "metadata":{
+                "description": "network id"
+            }
+        }
+    },
+    "variables": {
+        "username": "tux",
+        "password": ""
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-05-01",
+            "name": "[concat(parameters('vmName'),'-ip')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "COURSE": "[parameters('COURSE')]",
+                "REGION": "[parameters('REGION')]",
+                "INSTRUCTOR NAME": "[parameters('INSTRUCTOR_NAME')]"
+            },
+            "sku": {
+                "name": "Basic"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-05-01",
+            "name": "[concat(parameters('vmName'),'-nsg')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "COURSE": "[parameters('COURSE')]",
+                "REGION": "[parameters('REGION')]",
+                "INSTRUCTOR NAME": "[parameters('INSTRUCTOR_NAME')]"
+            },
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    },
+                    {
+                        "name": "Port_5900",
+                        "properties": {
+                            "description": "VNC",
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "5900",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 310,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-05-01",
+            "name": "[concat(parameters('vmName'),'-nic0')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "COURSE": "[parameters('COURSE')]",
+                "REGION": "[parameters('REGION')]",
+                "INSTRUCTOR NAME": "[parameters('INSTRUCTOR_NAME')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('vmName'),'-ip'))]"
+              ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(parameters('vmName'),'-ip'))]"
+                            },
+                            "subnet": {
+                                "id": "[concat(parameters('network_id'), '/subnets/default')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',concat(parameters('vmName'),'-nsg'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "name": "[parameters('vmName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "COURSE": "[parameters('COURSE')]",
+                "REGION": "[parameters('REGION')]",
+                "INSTRUCTOR NAME": "[parameters('INSTRUCTOR_NAME')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName'),'-nic0'))]"
+              ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "id": "[parameters('image')]"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(parameters('vmName'),'-osdisk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "StandardSSD_LRS"
+                        }
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "createOption": "Empty",
+                            "diskSizeGB": 4
+                        },
+                        {
+                            "lun": 1,
+                            "createOption": "Empty",
+                            "diskSizeGB": 4
+                        },
+                        {
+                            "lun": 2,
+                            "createOption": "Empty",
+                            "diskSizeGB": 4
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[variables('username')]",
+                    "adminPassword": "[variables('password')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "provisionVMAgent": true
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName'),'-nic0'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "https://sle311v12.blob.core.windows.net/"
+                    }
+                },
+                "licenseType": "SLES_BYOS"
+            }
+        }
+    ]
+}
