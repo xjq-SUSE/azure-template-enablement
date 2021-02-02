@@ -201,7 +201,8 @@
                 "INSTRUCTOR NAME": "[parameters('INSTRUCTOR_NAME')]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName'),'-nic0'))]"
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName'),'-nic0'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName'),'-nic1'))]"
               ],
             "properties": {
                 "hardwareProfile": {
